@@ -32,6 +32,20 @@ prompt.py                         → Your backend directory
 
 This contains the system prompt with instructions for the LLM on how to format responses with artifacts.
 
+## Short-Term Memory (Conversation History)
+
+The frontend automatically tracks conversation history in a **messages array** (LangChain format):
+
+```javascript
+messages = [
+    {"role": "user", "content": "Hello"},
+    {"role": "assistant", "content": "Hi! How can I help?"},
+    {"role": "user", "content": "Show me sales data"}
+]
+```
+
+Your backend receives this array with each request - just convert it to your LLM's format!
+
 ## How It Works
 
 ### Frontend (index.html + chat.js)
@@ -51,90 +65,37 @@ The frontend automatically detects artifacts in LLM responses:
 
 ### Backend Integration
 
-#### Step 1: Use the System Prompt
-
-```python
-from prompt import SYSTEM_PROMPT
-
-# When calling your LLM
-response = llm.chat([
-    {"role": "system", "content": SYSTEM_PROMPT},
-    {"role": "user", "content": user_message}
-])
-
-# Return the response directly to frontend
-return response.content
-```
-
-#### Step 2: Create a Simple API Endpoint
-
-**Example with FastAPI:**
+**Example with LangChain:**
 
 ```python
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import List, Dict
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from prompt import SYSTEM_PROMPT
 
-app = FastAPI()
+class ChatRequest(BaseModel):
+    messages: List[Dict[str, str]]
 
 @app.post("/chat")
-async def chat(message: str):
-    # Call your LLM with the system prompt
-    response = your_llm_client.chat([
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": message}
-    ])
+async def chat(request: ChatRequest):
+    llm = ChatOpenAI(model="gpt-4")
 
-    # Return the response as-is
-    # Frontend will detect and render artifacts automatically
-    return JSONResponse({
-        "response": response.content
-    })
+    # Build messages
+    langchain_messages = [SystemMessage(content=SYSTEM_PROMPT)]
+
+    for msg in request.messages:
+        if msg["role"] == "user":
+            langchain_messages.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            langchain_messages.append(AIMessage(content=msg["content"]))
+
+    response = llm.invoke(langchain_messages)
+    return {"response": response.content}
 ```
 
-**Example with Flask:**
-
-```python
-from flask import Flask, request, jsonify
-from prompt import SYSTEM_PROMPT
-
-app = Flask(__name__)
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    message = request.json.get("message")
-
-    # Call your LLM with the system prompt
-    response = your_llm_client.chat([
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": message}
-    ])
-
-    # Return the response as-is
-    return jsonify({
-        "response": response.content
-    })
-```
-
-#### Step 3: Update Frontend to Call Your API
-
-In `chat.js`, replace the `mockLLMResponse` function:
-
-```javascript
-// Replace this function in chat.js
-async function mockLLMResponse(userMessage) {
-    const response = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
-    });
-
-    const data = await response.json();
-    return data.response;
-}
-```
-
-That's it! The frontend will automatically detect and render any artifacts in the LLM response.
+See `backend_langchain.py` for complete examples with tools, streaming, and more!
 
 ## Optional: Database Integration
 

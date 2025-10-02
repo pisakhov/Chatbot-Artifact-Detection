@@ -5,6 +5,7 @@ const sendBtn = document.getElementById('sendBtn');
 const newChatBtn = document.getElementById('newChatBtn');
 
 let isWaitingForResponse = false;
+let messages = [];
 
 function autoResizeTextarea() {
     messageInput.style.height = 'auto';
@@ -158,14 +159,14 @@ function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-async function getLLMResponse(userMessage) {
+async function getLLMResponse() {
     const response = await fetch('/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            message: userMessage
+            messages: messages
         })
     });
 
@@ -202,7 +203,17 @@ async function handleSubmit(e) {
     scrollToBottom();
 
     try {
-        const response = await getLLMResponse(message);
+        messages.push({
+            role: 'user',
+            content: message
+        });
+
+        const response = await getLLMResponse();
+
+        messages.push({
+            role: 'assistant',
+            content: response
+        });
 
         loadingElement.remove();
 
@@ -229,6 +240,8 @@ async function handleSubmit(e) {
 }
 
 function handleNewChat() {
+    messages = [];
+
     chatContainer.innerHTML = `
         <div class="flex items-center justify-center h-full">
             <div class="text-center space-y-4 max-w-2xl">
