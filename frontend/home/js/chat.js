@@ -158,110 +158,23 @@ function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-async function mockLLMResponse(userMessage) {
-    const lowerMessage = userMessage.toLowerCase();
+async function getLLMResponse(userMessage) {
+    const response = await fetch('/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            message: userMessage
+        })
+    });
 
-    if (lowerMessage.includes('risk')) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        return `Let me analyze the risk data from our database.
-
-[Querying database with: SELECT risk_category, SUM(exposure_amount) as total_exposure FROM risk_data GROUP BY risk_category ORDER BY total_exposure DESC]
-
-Here's the risk exposure breakdown:
-
-<<<ARTIFACT_START>>>
-{
-  "type": "artifact",
-  "artifact_type": "chart",
-  "title": "Risk Exposure by Category",
-  "description": "Total exposure amount across different risk categories",
-  "data": {
-    "chart": {
-      "type": "column"
-    },
-    "title": {
-      "text": "Risk Exposure Analysis"
-    },
-    "xAxis": {
-      "categories": ["Credit Risk", "Market Risk", "Operational", "Liquidity", "Compliance"]
-    },
-    "yAxis": {
-      "title": {
-        "text": "Exposure ($M)"
-      }
-    },
-    "series": [{
-      "name": "Exposure Amount",
-      "data": [450, 380, 290, 210, 180],
-      "color": "#D9261C"
-    }],
-    "credits": {
-      "enabled": false
-    }
-  }
-}
-<<<ARTIFACT_END>>>
-
-Key findings: Credit Risk shows the highest exposure at $450M, representing 29% of total risk. I recommend prioritizing mitigation strategies for Credit and Market Risk categories.`;
+    if (!response.ok) {
+        throw new Error('Failed to get response from server');
     }
 
-    if (lowerMessage.includes('chart') || lowerMessage.includes('graph') || lowerMessage.includes('visualize') || lowerMessage.includes('sales') || lowerMessage.includes('data')) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        return `Let me query the sales data for you.
-
-[Querying database with: SELECT month, SUM(revenue) as total_revenue FROM sales WHERE year = 2024 GROUP BY month ORDER BY month]
-
-Here's the sales performance visualization:
-
-<<<ARTIFACT_START>>>
-{
-  "type": "artifact",
-  "artifact_type": "chart",
-  "title": "Sales Performance 2024",
-  "description": "Monthly sales revenue for the current year",
-  "data": {
-    "chart": {
-      "type": "line"
-    },
-    "title": {
-      "text": "Monthly Sales Performance"
-    },
-    "xAxis": {
-      "categories": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-    },
-    "yAxis": {
-      "title": {
-        "text": "Revenue ($)"
-      }
-    },
-    "series": [{
-      "name": "2024 Sales",
-      "data": [45000, 52000, 48000, 61000, 58000, 67000],
-      "color": "#003B70"
-    }],
-    "credits": {
-      "enabled": false
-    }
-  }
-}
-<<<ARTIFACT_END>>>
-
-Analysis: The data shows steady growth with a total revenue of $331,000 over the 6-month period. Notable spike in April (+27% MoM).`;
-    }
-
-    const responses = [
-        "I'm your Risk Analyst Agent. I can help you analyze financial data, assess risks, and create visualizations. Try asking me about sales data, risk analysis, or request a chart!",
-        "I understand. As a Risk Analyst Agent, I can query our database and provide insights. What specific data would you like to analyze?",
-        "That's an interesting question. I specialize in financial and risk analysis. Would you like me to pull some data from the database to help answer that?",
-        "I'm here to help with data analysis and risk assessment. Feel free to ask me to visualize any financial metrics or risk indicators.",
-        "As your Risk Analyst Agent, I can access the database and create visualizations. What would you like to explore today?"
-    ];
-
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-
-    return responses[Math.floor(Math.random() * responses.length)];
+    const data = await response.json();
+    return data.response;
 }
 
 async function handleSubmit(e) {
@@ -288,13 +201,26 @@ async function handleSubmit(e) {
     chatContainer.appendChild(loadingElement);
     scrollToBottom();
 
-    const response = await mockLLMResponse(message);
+    try {
+        const response = await getLLMResponse(message);
 
-    loadingElement.remove();
+        loadingElement.remove();
 
-    const assistantMessageElement = createArtifactMessage(response);
-    chatContainer.appendChild(assistantMessageElement);
-    scrollToBottom();
+        const assistantMessageElement = createArtifactMessage(response);
+        chatContainer.appendChild(assistantMessageElement);
+        scrollToBottom();
+    } catch (error) {
+        loadingElement.remove();
+
+        const errorMessage = createMessageElement(
+            'Sorry, I encountered an error. Please try again.',
+            false
+        );
+        chatContainer.appendChild(errorMessage);
+        scrollToBottom();
+
+        console.error('Error getting LLM response:', error);
+    }
 
     isWaitingForResponse = false;
     sendBtn.disabled = false;
