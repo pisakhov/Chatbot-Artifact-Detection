@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(207 100% 92%)",
+                        input: "hsl(207 100% 95%)",
+                        ring: "#003B70",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "#003B70",
+                        primary: {
+                            DEFAULT: "#003B70",
+                            foreground: "#FFFFFF",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(207 100% 97%)",
+                            foreground: "#003B70",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(207 60% 96%)",
+                            foreground: "hsl(207 30% 40%)",
+                        },
+                        accent: {
+                            DEFAULT: "#D9261C",
+                            foreground: "#FFFFFF",
+                        },
+                    },
+                    borderRadius: {
+                        lg: "0.5rem",
+                        md: "calc(0.5rem - 2px)",
+                        sm: "calc(0.5rem - 4px)",
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        .animate-pulse-dot-1 {
+            animation: pulse-dot 1.4s ease-in-out infinite;
+        }
+        .animate-pulse-dot-2 {
+            animation: pulse-dot 1.4s ease-in-out 0.2s infinite;
+        }
+        .animate-pulse-dot-3 {
+            animation: pulse-dot 1.4s ease-in-out 0.4s infinite;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: hsl(215.4 16.3% 46.9%);
+            border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: hsl(215.4 16.3% 36.9%);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground antialiased">
+    <div class="flex flex-col h-screen max-w-4xl mx-auto">
+        <header class="border-b border-border px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-semibold">Chat</h1>
+            <button id="newChatBtn" class="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                New Chat
+            </button>
+        </header>
+
+        <main class="flex-1 overflow-hidden flex flex-col">
+            <div id="chatContainer" class="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin">
+                <div class="flex items-center justify-center h-full">
+                    <div class="text-center space-y-4 max-w-2xl">
+                        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl font-bold text-foreground">Risk Analyst Agent</h2>
+                        <p class="text-muted-foreground text-lg">Your AI-powered financial data analyst</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 text-left">
+                            <div class="bg-secondary/50 rounded-lg p-4 border border-border">
+                                <div class="font-semibold text-sm text-foreground mb-1">📊 Data Visualization</div>
+                                <div class="text-xs text-muted-foreground">Create interactive charts from database queries</div>
+                            </div>
+                            <div class="bg-secondary/50 rounded-lg p-4 border border-border">
+                                <div class="font-semibold text-sm text-foreground mb-1">🔍 Risk Analysis</div>
+                                <div class="text-xs text-muted-foreground">Analyze exposure and identify risk patterns</div>
+                            </div>
+                            <div class="bg-secondary/50 rounded-lg p-4 border border-border">
+                                <div class="font-semibold text-sm text-foreground mb-1">💼 Financial Insights</div>
+                                <div class="text-xs text-muted-foreground">Query sales, revenue, and performance data</div>
+                            </div>
+                            <div class="bg-secondary/50 rounded-lg p-4 border border-border">
+                                <div class="font-semibold text-sm text-foreground mb-1">📈 Trend Detection</div>
+                                <div class="text-xs text-muted-foreground">Identify patterns and growth opportunities</div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-4">Try: "Show me risk analysis" or "Create a sales chart"</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-border px-4 py-4">
+                <form id="chatForm" class="max-w-3xl mx-auto">
+                    <div class="relative flex items-start gap-2">
+                        <div class="flex-1 relative">
+                            <textarea
+                                id="messageInput"
+                                rows="1"
+                                placeholder="Send a message..."
+                                class="w-full resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                                style="max-height: 200px; min-height: 44px;"
+                            ></textarea>
+                        </div>
+                        <button
+                            type="submit"
+                            id="sendBtn"
+                            class="flex-shrink-0 h-11 w-11 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-muted-foreground text-center mt-2">Press Enter to send, Shift+Enter for new line</p>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/home/js/chat.js"></script>
+</body>
+</html>
+
